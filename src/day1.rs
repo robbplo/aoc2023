@@ -1,5 +1,5 @@
 pub fn solve() {
-    let input = std::fs::read_to_string("../input/day1.txt").unwrap();
+    let input = std::fs::read_to_string("input/day1.txt").unwrap();
     let lines = input.trim().lines();
     println!("# Day 1");
     println!("Part 1: {}", part1(&lines.clone().collect()));
