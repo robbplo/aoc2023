@@ -14,8 +14,8 @@ fn part1(lines: &Vec<&str>) -> i32 {
     };
     lines
         .iter()
-        .map(|line| line_to_game(line))
-        .map(|game| if game_valid(&game, &max) { game.id } else { 0 })
+        .map(|line| Game::from_str(line))
+        .map(|game| if game.is_valid(&max) { game.id } else { 0 })
         .sum()
 }
 
@@ -35,9 +35,9 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"
 fn part2(lines: &Vec<&str>) -> i32 {
     lines
         .iter()
-        .map(|line| line_to_game(line))
-        .map(|game| game_minimal_set(&game))
-        .map(|set| set_power(&set))
+        .map(|line| Game::from_str(line))
+        .map(|game| game.minimal_set())
+        .map(|set| set.power())
         .sum()
 }
 
@@ -55,80 +55,88 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"
 }
 
 #[derive(Clone, Debug)]
+struct Game {
+    id: i32,
+    sets: Vec<CubeSet>,
+}
+
+impl Game {
+    fn from_str(str: &str) -> Game {
+        let mut parts = str.split(": ");
+        let id = parts
+            .next()
+            .unwrap()
+            .split_whitespace()
+            .nth(1)
+            .unwrap()
+            .parse::<i32>()
+            .unwrap();
+
+        let sets: Vec<_> = parts
+            .next()
+            .unwrap()
+            .split("; ")
+            .map(|set| CubeSet::from_str(set))
+            .collect();
+
+        Game { id, sets }
+    }
+
+    fn is_valid(&self, max: &CubeSet) -> bool {
+        self.sets.iter().all(|set| set.is_valid(max))
+    }
+
+    fn minimal_set(&self) -> CubeSet {
+        let mut min = CubeSet {
+            red: 0,
+            green: 0,
+            blue: 0,
+        };
+
+        for set in self.sets.iter() {
+            min.red = set.red.max(min.red);
+            min.green = set.green.max(min.green);
+            min.blue = set.blue.max(min.blue);
+        }
+
+        min
+    }
+}
+
+#[derive(Clone, Debug)]
 struct CubeSet {
     red: i32,
     green: i32,
     blue: i32,
 }
 
-struct Game {
-    id: i32,
-    sets: Vec<CubeSet>,
-}
-
-fn game_valid(game: &Game, max: &CubeSet) -> bool {
-    game.sets
-        .iter()
-        .all(|set| set.red <= max.red && set.green <= max.green && set.blue <= max.blue)
-}
-
-fn game_minimal_set(game: &Game) -> CubeSet {
-    let mut min = CubeSet {
-        red: 0,
-        green: 0,
-        blue: 0,
-    };
-
-    for set in game.sets.iter() {
-        min.red = set.red.max(min.red);
-        min.green = set.green.max(min.green);
-        min.blue = set.blue.max(min.blue);
-    }
-    min
-}
-
-fn set_power(set: &CubeSet) -> i32 {
-    set.red.max(1) * set.green.max(1) * set.blue.max(1)
-}
-
-fn line_to_game(line: &str) -> Game {
-    let mut parts = line.split(": ");
-    let id = parts
-        .next()
-        .unwrap()
-        .split(" ")
-        .nth(1)
-        .unwrap()
-        .parse::<i32>()
-        .unwrap();
-
-    let sets: Vec<_> = parts
-        .next()
-        .unwrap()
-        .split("; ")
-        .map(|set| line_to_set(set))
-        .collect();
-
-    Game { id, sets }
-}
-
-fn line_to_set(line: &str) -> CubeSet {
-    let mut parts = line.split(", ");
-    let mut set = CubeSet {
-        red: 0,
-        green: 0,
-        blue: 0,
-    };
-    while let Some(part) = parts.next() {
-        let mut count_color = part.split(" ");
-        let count = count_color.next().unwrap().parse::<i32>().unwrap();
-        let color = count_color.next().unwrap();
-        match color {
-            "red" => set.red = count,
-            "green" => set.green = count,
-            "blue" => set.blue = count,
-            _ => panic!("Unknown color: {}", color),
+impl CubeSet {
+    fn from_str(str: &str) -> CubeSet {
+        let parts = str.split(", ");
+        let mut set = CubeSet {
+            red: 0,
+            green: 0,
+            blue: 0,
+        };
+        for part in parts {
+            let mut count_color = part.split(" ");
+            let count = count_color.next().unwrap().parse::<i32>().unwrap();
+            let color = count_color.next().unwrap();
+            match color {
+                "red" => set.red = count,
+                "green" => set.green = count,
+                "blue" => set.blue = count,
+                _ => panic!("Unknown color: {}", color),
+            }
         }
+        set
     }
-    set
+
+    fn is_valid(&self, max: &CubeSet) -> bool {
+        self.red <= max.red && self.green <= max.green && self.blue <= max.blue
+    }
+
+    fn power(&self) -> i32 {
+        self.red * self.green * self.blue
+    }
 }
