@@ -22,6 +22,7 @@ enum Score {
 struct Hand {
     cards: Vec<char>,
     bet: i32,
+    score: Score,
 }
 
 impl Hand {
@@ -29,19 +30,19 @@ impl Hand {
         let mut iter = input.split_whitespace();
         let cards = iter.next().unwrap().chars().collect::<Vec<_>>();
         let bet = iter.next().unwrap().parse::<i32>().unwrap();
-        Hand { cards, bet }
+        let score = Hand::calculate_score(&cards);
+        Hand { cards, bet, score }
     }
 
-    fn score(&self) -> Score {
-        let jokers = self.cards.iter().filter(|c| **c == 'J').count() as i32;
-        let freq =
-            self.cards
-                .iter()
-                .filter(|c| **c != 'J')
-                .fold(HashMap::new(), |mut map, card| {
-                    map.entry(card).and_modify(|f| *f += 1).or_insert(1);
-                    map
-                });
+    fn calculate_score(cards: &Vec<char>) -> Score {
+        let jokers = cards.iter().filter(|c| **c == 'J').count() as i32;
+        let freq = cards
+            .iter()
+            .filter(|c| **c != 'J')
+            .fold(HashMap::new(), |mut map, card| {
+                map.entry(card).and_modify(|f| *f += 1).or_insert(1);
+                map
+            });
         let mut freq_values: Vec<&i32> = freq.values().collect();
         freq_values.sort();
         let mut highest = *freq_values.pop().unwrap_or(&0);
@@ -62,18 +63,17 @@ impl Hand {
 }
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_score = self.score();
-        let other_score = other.score();
-        if self_score == other_score {
-            for (self_card, other_card) in self.cards.iter().zip(other.cards.iter()) {
-                let self_value = card_value(self_card);
-                let other_value = card_value(other_card);
-                if self_value != other_value {
-                    return self_value.cmp(&other_value);
-                }
-            }
+        if self.score != other.score {
+            return self.score.cmp(&other.score);
         }
-        self_score.cmp(&other_score)
+
+        self.cards
+            .iter()
+            .zip(other.cards.iter())
+            .filter(|(a, b)| *a != *b)
+            .map(|(a, b)| card_value(a).cmp(&card_value(b)))
+            .next()
+            .unwrap()
     }
 }
 
@@ -126,7 +126,6 @@ fn part2(input: &str) -> i64 {
     let mut total = 0;
     let mut multiplier = 1;
     for hand in hands {
-        println!("{:?} {:?} {:?}", hand.cards, hand.bet, hand.score());
         total += hand.bet as i64 * multiplier;
         multiplier += 1;
     }
