@@ -1,5 +1,4 @@
 use std::{cmp::Ordering, collections::HashMap};
-                println!("{}: {}", i, steps);
 
 pub fn solve() {
     let input = std::fs::read_to_string("input/day7.txt").unwrap();
@@ -158,4 +157,3 @@ JJJJ2 41
 ";
     assert_eq!(part2(input), 6839);
 }
-
