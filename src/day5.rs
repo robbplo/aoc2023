@@ -50,13 +50,9 @@ impl Mapping {
     }
 
     fn convert_and_skip(&self, seed: i64) -> (i64, i64) {
-        let (result, skips) = self.steps.iter().fold((seed, Vec::new()), |mut acc, step| {
-            let (result, skip_n) = step.convert_and_skip(acc.0);
-            acc.1.push(skip_n);
-            (result, acc.1)
-        });
-
-        (result, *skips.iter().min().unwrap())
+        self.steps.iter().fold((seed, i64::MAX), |acc, step| {
+            step.convert_and_skip(acc.0, acc.1)
+        })
     }
 
     fn seed_ranges(&self) -> Vec<RangeInclusive<i64>> {
@@ -101,14 +97,14 @@ impl Step {
         source
     }
 
-    fn convert_and_skip(&self, source: i64) -> (i64, i64) {
+    fn convert_and_skip(&self, source: i64, current_skip: i64) -> (i64, i64) {
         for rule in &self.rules {
             let (result, skip) = rule.convert_and_skip(source);
             if result != source {
-                return (result, skip);
+                return (result, skip.min(current_skip));
             }
         }
-        (source, i64::MAX)
+        (source, current_skip)
     }
 }
 
