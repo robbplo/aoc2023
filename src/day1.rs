@@ -59,7 +59,6 @@ fn linevalue2(line: &str) -> i32 {
 
 #[test]
 fn test_linevalue2() {
-    println!("{}", linevalue2("two1nine"));
     assert_eq!(linevalue2("two1nine"), 29);
     assert_eq!(linevalue2("eightwothree"), 83);
     assert_eq!(linevalue2("abcone2threexyz"), 13);
