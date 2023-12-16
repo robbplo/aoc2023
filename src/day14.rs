@@ -9,77 +9,74 @@ pub fn solve() {
     println!("Part 2: {}", part2(&input));
 }
 
-impl Grid2D<char> {
-    fn hash(&self) -> String {
-        self.find_all('O')
-            .iter()
-            .fold(String::new(), |mut acc, &(x, y)| {
-                acc.push_str(&format!("{:02}{:02}", x, y));
-                acc
-            })
-    }
-    fn roll_cycle(&mut self) {
-        self.roll(Bearing::North);
-        self.roll(Bearing::West);
-        self.roll(Bearing::South);
-        self.roll(Bearing::East);
-    }
-    fn last_free(&self, start: Point, bearing: Bearing) -> Option<Point> {
-        let mut next = bearing.offset_point(start);
-        let mut last_free = None;
-        loop {
-            match self.get_opt(next) {
-                Some('.') => {
-                    last_free = next;
-                    next = bearing.offset_point(next.unwrap());
-                }
-                Some('O') => next = bearing.offset_point(next.unwrap()),
-                Some('#') => break,
-                _ => break,
+fn hash(grid: &Grid2D<char>) -> String {
+    grid.find_all('O')
+        .iter()
+        .fold(String::new(), |mut acc, &(x, y)| {
+            acc.push_str(&format!("{:02}{:02}", x, y));
+            acc
+        })
+}
+fn roll_cycle(grid: &mut Grid2D<char>) {
+    roll(grid, Bearing::North);
+    roll(grid, Bearing::West);
+    roll(grid, Bearing::South);
+    roll(grid, Bearing::East);
+}
+fn last_free(grid: &Grid2D<char>, start: Point, bearing: Bearing) -> Option<Point> {
+    let mut next = bearing.offset_point(start);
+    let mut last_free = None;
+    loop {
+        match grid.get_opt(next) {
+            Some('.') => {
+                last_free = next;
+                next = bearing.offset_point(next.unwrap());
             }
+            Some('O') => next = bearing.offset_point(next.unwrap()),
+            Some('#') => break,
+            _ => break,
         }
-        last_free
     }
-    fn roll(&mut self, bearing: Bearing) {
-        let mut rocks = self.find_all('O');
-
-        rocks
-            .iter_mut()
-            .for_each(|rock| match self.last_free(*rock, bearing) {
-                Some(last_free) => {
-                    self.set(last_free, 'O');
-                    self.set(*rock, '.');
-                }
-                None => (),
-            });
-    }
-    fn north_load(&self) -> usize {
-        let rocks = self.find_all('O');
-        let height = self.height();
-        rocks.iter().map(|rock| height - rock.1).sum()
-    }
+    last_free
+}
+fn roll(grid: &mut Grid2D<char>, bearing: Bearing) {
+    let mut rocks = grid.find_all('O');
+    rocks
+        .iter_mut()
+        .for_each(|rock| match last_free(grid, *rock, bearing) {
+            Some(last_free) => {
+                grid.set(last_free, 'O');
+                grid.set(*rock, '.');
+            }
+            None => (),
+        });
+}
+fn north_load(grid: &Grid2D<char>) -> usize {
+    let rocks = grid.find_all('O');
+    let height = grid.height();
+    rocks.iter().map(|rock| height - rock.1).sum()
 }
 
 fn part1(input: &str) -> usize {
     let mut grid = Grid2D::from(input);
-    grid.roll(Bearing::North);
-    grid.north_load()
+    roll(&mut grid, Bearing::North);
+    north_load(&mut grid)
 }
 
 fn part2(input: &str) -> usize {
     let mut target = 1e9 as usize;
     let mut cache_hits: HashMap<String, usize> = HashMap::new();
-    let mut grid = Grid2D::from(input);
+    let grid = &mut Grid2D::from(input);
     while cache_hits.values().all(|x| *x <= 2) {
         target -= 1;
-        *cache_hits.entry(grid.hash()).or_insert(0) += 1;
-        grid.roll_cycle();
+        *cache_hits.entry(hash(grid)).or_insert(0) += 1;
+        roll_cycle(grid);
     }
     let cycle = cache_hits.values().filter(|x| **x > 1).count();
     for _ in 0..(target % cycle) {
-        grid.roll_cycle();
+        roll_cycle(grid);
     }
-    grid.north_load()
+    north_load(&grid)
 }
 
 #[test]

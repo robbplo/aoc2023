@@ -1,34 +1,5 @@
 pub type Point = (usize, usize);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Bearing {
-    North,
-    East,
-    South,
-    West,
-}
-
-impl Bearing {
-    pub fn offset_point(&self, (x, y): Point) -> Option<Point> {
-        let (dx, dy) = self.offset();
-        if dx < 0 && x == 0 {
-            return None;
-        }
-        if dy < 0 && y == 0 {
-            return None;
-        }
-        Some(((x as isize + dx) as usize, (y as isize + dy) as usize))
-    }
-    pub fn offset(&self) -> (isize, isize) {
-        match self {
-            Bearing::North => (0, -1),
-            Bearing::East => (1, 0),
-            Bearing::South => (0, 1),
-            Bearing::West => (-1, 0),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Grid2D<T> {
     data: Vec<Vec<T>>,
@@ -48,10 +19,10 @@ impl Grid2D<char> {
     }
 
     pub fn get_offset(&self, (x, y): Point, (dx, dy): (isize, isize)) -> Option<&char> {
-        if dx < 0 && x < dx.abs() as usize {
+        if dx < 0 && x < dx.unsigned_abs() {
             return None;
         }
-        if dy < 0 && y < dy.abs() as usize {
+        if dy < 0 && y < dy.unsigned_abs() {
             return None;
         }
         self.get((x + dx as usize, y + dy as usize))
@@ -82,12 +53,15 @@ impl Grid2D<char> {
     }
 
     pub fn get_adjacent(&self, point: Point) -> Vec<&char> {
-        let mut result = Vec::new();
-        result.push(self.get_offset(point, Bearing::North.offset()));
-        result.push(self.get_offset(point, Bearing::East.offset()));
-        result.push(self.get_offset(point, Bearing::South.offset()));
-        result.push(self.get_offset(point, Bearing::West.offset()));
-        result.iter().filter_map(|x| *x).collect()
+        [
+            self.get_offset(point, Bearing::North.offset()),
+            self.get_offset(point, Bearing::East.offset()),
+            self.get_offset(point, Bearing::South.offset()),
+            self.get_offset(point, Bearing::West.offset()),
+        ]
+        .iter()
+        .filter_map(|x| *x)
+        .collect()
     }
 }
 
@@ -112,5 +86,33 @@ impl From<&str> for Grid2D<char> {
             .collect::<Vec<_>>();
 
         Self { data }
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Bearing {
+    North,
+    East,
+    South,
+    West,
+}
+
+impl Bearing {
+    pub fn offset_point(&self, (x, y): Point) -> Option<Point> {
+        let (dx, dy) = self.offset();
+        if dx < 0 && x == 0 {
+            return None;
+        }
+        if dy < 0 && y == 0 {
+            return None;
+        }
+        Some(((x as isize + dx) as usize, (y as isize + dy) as usize))
+    }
+    pub fn offset(&self) -> (isize, isize) {
+        match self {
+            Bearing::North => (0, -1),
+            Bearing::East => (1, 0),
+            Bearing::South => (0, 1),
+            Bearing::West => (-1, 0),
+        }
     }
 }
