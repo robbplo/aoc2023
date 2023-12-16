@@ -2,49 +2,69 @@ pub fn solve() {
     let input = std::fs::read_to_string("input/day13.txt").unwrap();
     println!("# Day 13");
     println!("Part 1: {}", part1(&input));
-    //println!("Part 2: {}", part2(&input));
+    println!("Part 2: {}", part2(&input));
 }
 
-type Matrix<T> = Vec<Vec<T>>;
+type Line = Vec<char>;
 
 #[derive(Debug)]
 struct Map {
-    rows: Vec<String>,
-    cols: Vec<String>,
+    rows: Vec<Line>,
+    cols: Vec<Line>,
+}
+
+fn hamming_distance(a: &Line, b: &Line) -> usize {
+    a.iter().zip(b.iter()).filter(|(a, b)| a != b).count()
+}
+
+#[derive(Debug, PartialEq)]
+enum Reflection {
+    Full,
+    Smudge,
+}
+
+enum Direction {
+    Vertical,
+    Horizontal,
 }
 
 impl Map {
-    fn is_vertical_reflection(&self, idx: usize) -> bool {
-        let left = idx;
-        let right = idx + 1;
-        let zip = (0..=left).rev().zip(right..self.cols.len());
+    fn reflection_at(&self, idx: usize, dir: Direction) -> Option<Reflection> {
+        let collection = match dir {
+            Direction::Vertical => &self.cols,
+            Direction::Horizontal => &self.rows,
+        };
+        let mut smudge_found = false;
+
+        let zip = (0..=idx).rev().zip((idx + 1)..collection.len());
         for (left, right) in zip {
-            if self.cols[left] != self.cols[right] {
-                return false;
+            match hamming_distance(&collection[left], &collection[right]) {
+                0 => {}
+                1 => {
+                    if smudge_found {
+                        return None;
+                    }
+                    smudge_found = true;
+                }
+                _ => return None,
             }
         }
-        return true;
-    }
-    fn is_horizontal_reflection(&self, idx: usize) -> bool {
-        let left = idx;
-        let right = idx + 1;
-        let zip = (0..=left).rev().zip(right..self.rows.len());
-        for (left, right) in zip {
-            if self.rows[left] != self.rows[right] {
-                return false;
-            }
+        if smudge_found {
+            return Some(Reflection::Smudge);
         }
-        return true;
+        Some(Reflection::Full)
     }
-    fn reflection_score(&self) -> usize {
+    fn reflection_score(&self, target: Reflection) -> usize {
         for i in 0..self.cols.len() - 1 {
-            if self.is_vertical_reflection(i) {
-                return i + 1;
+            match self.reflection_at(i, Direction::Vertical) {
+                Some(found) if found == target => return i + 1,
+                _ => (),
             }
         }
         for i in 0..self.rows.len() - 1 {
-            if self.is_horizontal_reflection(i) {
-                return (i + 1) * 100;
+            match self.reflection_at(i, Direction::Horizontal) {
+                Some(found) if found == target => return (i + 1) * 100,
+                _ => (),
             }
         }
         panic!("No reflection found");
@@ -53,34 +73,35 @@ impl Map {
 
 impl From<&str> for Map {
     fn from(value: &str) -> Self {
-        let matrix: Matrix<char> = value
+        let matrix: Vec<Line> = value
             .trim()
             .lines()
             .map(|line| line.chars().collect::<Vec<_>>())
             .collect();
-        let rows: Vec<String> = matrix
-            .iter()
-            .map(|row| row.iter().collect::<String>())
-            .collect();
-        let cols: Vec<String> = (0..matrix[0].len())
-            .map(|col| matrix.iter().map(|row| row[col]).collect::<String>())
+        let rows: Vec<Line> = matrix.clone();
+        let cols: Vec<Line> = (0..matrix[0].len())
+            .map(|col| matrix.iter().map(|row| row[col]).collect())
             .collect();
         Self { cols, rows }
     }
 }
 
 fn part1(input: &str) -> usize {
-    let maps = input
+    input
         .trim()
         .split("\n\n")
         .map(Map::from)
-        .collect::<Vec<_>>();
-
-    maps.iter().map(|map| map.reflection_score()).sum()
+        .map(|map| map.reflection_score(Reflection::Full))
+        .sum()
 }
 
 fn part2(input: &str) -> usize {
-    0
+    input
+        .trim()
+        .split("\n\n")
+        .map(Map::from)
+        .map(|map| map.reflection_score(Reflection::Smudge))
+        .sum()
 }
 
 #[test]
@@ -101,26 +122,10 @@ fn test() {
 #####.##.
 ..##..###
 #....#..#
-
-.#.##.#.#
-.##..##..
-.#.##.#..
-#......##
-#......##
-.#.##.#..
-.##..##.#
-
-#..#....#
-###..##..
-.##.#####
-.##.#####
-###..##..
-#..#....#
-#..##...#
 ";
 
-    assert_eq!(part1(input), 709);
-    //assert_eq!(part2(input), 525152);
+    assert_eq!(part1(input), 405);
+    assert_eq!(part2(input), 400);
 
     let input = "
 ##....##.####
@@ -141,6 +146,5 @@ fn test() {
 ";
 
     assert_eq!(part1(input), 1200);
-
-    //assert_eq!(part2(input), 0);
+    //assert_eq!(part2(input), 400);
 }
