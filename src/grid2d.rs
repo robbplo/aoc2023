@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 pub type Point = (usize, usize);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -5,12 +7,12 @@ pub struct Grid2D<T> {
     data: Vec<Vec<T>>,
 }
 
-impl Grid2D<char> {
-    pub fn get(&self, (x, y): Point) -> Option<&char> {
+impl<T: PartialEq> Grid2D<T> {
+    pub fn get(&self, (x, y): Point) -> Option<&T> {
         self.data.get(y).and_then(|row| row.get(x))
     }
 
-    pub fn get_opt(&self, point: Option<Point>) -> Option<&char> {
+    pub fn get_opt(&self, point: Option<Point>) -> Option<&T> {
         if let Some(point) = point {
             self.get(point)
         } else {
@@ -18,7 +20,7 @@ impl Grid2D<char> {
         }
     }
 
-    pub fn get_offset(&self, (x, y): Point, (dx, dy): (isize, isize)) -> Option<&char> {
+    pub fn get_offset(&self, (x, y): Point, (dx, dy): (isize, isize)) -> Option<&T> {
         if dx < 0 && x < dx.unsigned_abs() {
             return None;
         }
@@ -28,7 +30,7 @@ impl Grid2D<char> {
         self.get((x + dx as usize, y + dy as usize))
     }
 
-    pub fn set(&mut self, (x, y): Point, value: char) {
+    pub fn set(&mut self, (x, y): Point, value: T) {
         self.data[y][x] = value;
     }
 
@@ -40,7 +42,7 @@ impl Grid2D<char> {
         self.data.len()
     }
 
-    pub fn find_all(&self, value: char) -> Vec<Point> {
+    pub fn find_all(&self, value: T) -> Vec<Point> {
         let mut result = Vec::new();
         for y in 0..self.height() {
             for x in 0..self.width() {
@@ -52,7 +54,7 @@ impl Grid2D<char> {
         result
     }
 
-    pub fn get_adjacent(&self, point: Point) -> Vec<&char> {
+    pub fn get_adjacent(&self, point: Point) -> Vec<&T> {
         [
             self.get_offset(point, Bearing::North.offset()),
             self.get_offset(point, Bearing::East.offset()),
@@ -65,7 +67,7 @@ impl Grid2D<char> {
     }
 }
 
-impl std::fmt::Display for Grid2D<char> {
+impl<T: Display> Display for Grid2D<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in &self.data {
             for cell in row {
