@@ -42,6 +42,10 @@ impl<T: PartialEq> Grid2D<T> {
         self.data.len()
     }
 
+    pub fn len(&self) -> usize {
+        self.width() * self.height()
+    }
+
     pub fn find_all(&self, value: T) -> Vec<Point> {
         let mut result = Vec::new();
         for y in 0..self.height() {
@@ -86,11 +90,27 @@ impl From<&str> for Grid2D<char> {
             .lines()
             .map(|line| line.chars().collect::<Vec<_>>())
             .collect::<Vec<_>>();
+        Self { data }
+    }
+}
+
+impl From<&str> for Grid2D<u8> {
+    fn from(value: &str) -> Self {
+        let data = value
+            .trim()
+            .lines()
+            .map(|line| {
+                line.chars()
+                    .map(|c| c.to_digit(10).unwrap() as u8)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
 
         Self { data }
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub enum Bearing {
     North,
     East,
